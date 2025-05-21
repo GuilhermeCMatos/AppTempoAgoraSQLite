@@ -1,7 +1,12 @@
-﻿namespace AppTempoAgoraSQLite.Models
+﻿using SQLite;
+
+namespace AppTempoAgoraSQLite.Models
 {
     public class Tempo
     {
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+
         public double? lon { get; set; }
         public double? lat { get; set; }
         public double? temp_min { get; set; }
@@ -13,5 +18,4 @@
         public string? sunrise { get; set; }
         public string? sunset { get; set; }
     }
-}
 }
