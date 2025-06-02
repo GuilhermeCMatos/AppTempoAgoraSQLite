@@ -29,7 +29,7 @@ namespace AppTempoAgoraSQLite.Helpers
 
         public Task<List<Tempo>> Search(string q)
         {
-            string sql = "SELECT * FROM Tempo WHERE descricao LIKE '%" + q + "%'";
+            string sql = "SELECT * FROM Tempo WHERE description LIKE '%" + q + "%' ";
 
             return _conn.QueryAsync<Tempo>(sql);
 

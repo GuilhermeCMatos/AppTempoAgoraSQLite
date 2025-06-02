@@ -1,18 +1,35 @@
-﻿
+﻿using System.Diagnostics;
+using System.Collections.ObjectModel;
 using AppTempoAgoraSQLite.Models;
 using AppTempoAgoraSQLite.Services;
 
 namespace AppTempoAgoraSQLite
-
 {
     public partial class MainPage : ContentPage
     {
+        ObservableCollection<Tempo> lista = new ObservableCollection<Tempo>();
+
         public MainPage()
         {
             InitializeComponent();
+
+            lst_previsoes_tempo.ItemsSource = lista;
         }
 
-        private async void Button_Clicked_Previsao(object sender, EventArgs e)
+        protected async override void OnAppearing()
+        {
+            try
+            {
+                lista.Clear();
+                App.Db.GetAll().Result.ForEach(i => lista.Add(i));
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ops", ex.Message, "OK");
+            }
+        }
+
+        private async void Button_Clicked(object sender, EventArgs e)
         {
             try
             {
@@ -22,7 +39,8 @@ namespace AppTempoAgoraSQLite
 
                     if (t != null)
                     {
-                        await App.Db.Insert(t); //talvez apague depois
+                        t.Cidade = txt_cidade.Text; // Atribui a cidade ao objeto Tempo
+                        t.DataConsulta = DateTime.Now; // Atribui a data atual ao objeto Tempo
 
                         string dados_previsao = "";
 
@@ -33,29 +51,27 @@ namespace AppTempoAgoraSQLite
                                          $"Temp Máx: {t.temp_max} \n" +
                                          $"Temp Min: {t.temp_min} \n";
 
-                        lbl_res.Text = dados_previsao;
+                        //lbl_res.Text = dados_previsao;
 
-                        string mapa = $"https://embed.windy.com/embed.html?" +
-                                      $"type=map&location=coordinates&metricRain=mm&metricTemp=°C" +
-                                      $"&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface" +
-                                      $"&lat={t.lat.ToString().Replace(",", ".")}&lon={t.lon.ToString().Replace(",", ".")}";
+                        await App.Db.Insert(t);
 
-                        wv_mapa.Source = mapa;
+                        //string msg = $"Total de {total_registros} registros salvos!";
 
-                        //Debug.WriteLine(mapa);
+                        //await DisplayAlert("Sucesso", msg, "OK");
 
+                        lista.Clear();
+                        App.Db.GetAll().Result.ForEach(i => lista.Add(i));
                     }
                     else
                     {
-
                         lbl_res.Text = "Sem dados de Previsão";
-                    }
+                    } // Fecha if t=null
 
                 }
                 else
                 {
                     lbl_res.Text = "Preencha a cidade.";
-                }
+                } // fecha if string is null or empty
 
             }
             catch (Exception ex)
@@ -64,22 +80,53 @@ namespace AppTempoAgoraSQLite
             }
         }
 
-        private async void GetCidade(double lat, double lon)
+        private void lst_previsoes_tempo_Refreshing(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lst_previsoes_tempo_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+        {
+
+        }
+
+        private async void txt_search_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
             {
-                IEnumerable<Placemark> places = await Geocoding.Default.GetPlacemarksAsync(lat, lon);
+                string q = e.NewTextValue;
 
-                Placemark? place = places.FirstOrDefault();
+                lista.Clear();
 
-                if (place != null)
+                List<Tempo> tmp = await App.Db.Search(q);
+
+                tmp.ForEach(i => lista.Add(i));
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlert("Ops", ex.Message, "OK");
+            }
+        }
+
+        private async void MenuItem_Clicked(object sender, EventArgs e)
+        {
+            try
+            {
+                MenuItem selecinado = sender as MenuItem;
+                Tempo t = selecinado.BindingContext as Tempo;
+
+                bool confirm = await DisplayAlert(
+                    "Tem Certeza?", $"Remover previsão para {t.Cidade}?", "Sim", "Não");
+
+                if (confirm)
                 {
-                    txt_cidade.Text = place.Locality;
+                    await App.Db.Delete(t.Id);
+                    lista.Remove(t);
                 }
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Erro: Obtenção do nome da Cidade", ex.Message, "OK");
+                await DisplayAlert("Ops", ex.Message, "OK");
             }
         }
     }
