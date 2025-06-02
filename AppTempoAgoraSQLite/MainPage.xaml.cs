@@ -22,6 +22,8 @@ namespace AppTempoAgoraSQLite
 
                     if (t != null)
                     {
+                        await App.Db.Insert(t); //talvez apague depois
+
                         string dados_previsao = "";
 
                         dados_previsao = $"Latitude: {t.lat} \n" +
